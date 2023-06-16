@@ -1,7 +1,9 @@
-use std::io::{Cursor, Write};
+pub mod adapters;
 
 use bytes::BufMut;
 use thiserror::Error;
+
+use self::adapters::ConsumeByte;
 
 const CONTINUE_BIT: u8 = 0x80;
 
@@ -85,12 +87,29 @@ impl<B: BufMut> CounterExt for B {
 
 const SHIFT: usize = 7;
 
-pub fn read_varint(mut varint: &[u8]) -> Result<(usize, i32), VarIntError> {
+/// Reads a varint from `buffer`, advancing the internal cursor
+///
+/// If you don't want the internal cursor to be advanced, as to check
+/// for early EOF while decoding, for example, partial buffers, pass an
+/// immutable reference to the buffer
+///
+/// ```no_run
+/// # use mc_protocol::varint::read_varint;
+///
+/// let original = &[0x10];
+/// let buffer = &original[..];
+///
+/// // this one advances the buffer pointer
+/// read_varint(buffer);
+///
+/// // this one does not
+/// read_varint(&buffer[..]);
+/// ```
+pub fn read_varint<T: ConsumeByte>(mut buffer: T) -> Result<(usize, i32), VarIntError> {
     let mut buf: u32 = 0;
 
     for i in 0..5 {
-        let (byte, rest) = varint.split_first().ok_or(VarIntError::Eof)?;
-        varint = rest;
+        let byte: u8 = buffer.consume_byte()?;
 
         buf |= (byte.mask_continue() as u32) << (i * SHIFT);
 
@@ -99,7 +118,7 @@ pub fn read_varint(mut varint: &[u8]) -> Result<(usize, i32), VarIntError> {
         }
     }
 
-    Err(VarIntError::Big)
+    Err(VarIntError::Big.into())
 }
 
 pub fn write_varint(mut writer: impl BufMut, val: i32) -> usize {
@@ -125,13 +144,6 @@ pub fn size(val: i32) -> usize {
     let val = val as u32;
     val.checked_ilog(1 << SHIFT).unwrap_or_default() as usize + 1
 }
-
-// pub fn size(val: i32) -> usize {
-//     let val = val as u32;
-//     std::iter::successors(Some(val), |val| Some(val >> 7))
-//         .take_while(|&val| val != 0)
-//         .count()
-// }
 
 #[cfg(test)]
 mod test {

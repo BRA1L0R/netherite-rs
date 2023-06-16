@@ -1,9 +1,29 @@
-mod varint;
+pub mod serde;
+pub mod varint;
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use thiserror::Error;
-use tokio_util::codec::{Decoder, Encoder};
+use tokio::net::TcpStream;
+use tokio_util::codec::{Decoder, Encoder, Framed};
 use varint::{write_varint, VarIntError};
+
+pub trait PeekBuffer {
+    type Peek<'a>: Buf
+    where
+        Self: 'a;
+
+    // creates a peek adapter that allows for
+    // reading without consuming the internal buf
+    fn peek(&self) -> Self::Peek<'_>;
+}
+
+impl PeekBuffer for BytesMut {
+    type Peek<'a> = &'a [u8] where Self: 'a;
+
+    fn peek(&self) -> Self::Peek<'_> {
+        &self[..]
+    }
+}
 
 #[derive(Debug, Error)]
 enum CodecError {
@@ -40,8 +60,8 @@ impl Decoder for MinecraftCodec {
     type Item = MinecraftPacket;
     type Error = CodecError;
 
-    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
-        let (packet_len_size, packet_len) = match varint::read_varint(src) {
+    fn decode(&mut self, mut src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
+        let (packet_len_size, packet_len) = match varint::read_varint(&mut src.peek()) {
             Err(VarIntError::Eof) => return Ok(None),
             r => r?,
         };
@@ -63,8 +83,7 @@ impl Decoder for MinecraftCodec {
 
         src.advance(packet_len_size);
 
-        let (id_len, packet_id) = varint::read_varint(src)?;
-        src.advance(id_len);
+        let (id_len, packet_id) = varint::read_varint(&mut src)?;
 
         let data_size = packet_len.checked_sub(id_len).ok_or(CodecError::Size)?;
         let data = src.copy_to_bytes(data_size);
@@ -78,15 +97,28 @@ impl Encoder<MinecraftPacket> for MinecraftCodec {
 
     fn encode(&mut self, item: MinecraftPacket, mut dst: &mut BytesMut) -> Result<(), Self::Error> {
         let packet_size = varint::size(item.packet_id) + item.data.len();
-        write_varint(
-            &mut dst,
-            packet_size.try_into().map_err(|_| CodecError::Size)?,
-        );
+        if packet_size > self.max_size {
+            return Err(CodecError::Size);
+        }
 
+        let packet_size = packet_size.try_into().map_err(|_| CodecError::Size)?;
+
+        write_varint(&mut dst, packet_size);
         write_varint(&mut dst, item.packet_id);
         dst.put(item.data);
 
         Ok(())
+    }
+}
+
+struct Connection {
+    inner: Framed<TcpStream, MinecraftCodec>,
+}
+
+impl Connection {
+    fn new(stream: TcpStream) -> Self {
+        let inner = Framed::new(stream, MinecraftCodec::default());
+        Self { inner }
     }
 }
 
