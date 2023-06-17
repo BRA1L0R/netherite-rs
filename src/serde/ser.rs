@@ -103,7 +103,7 @@ impl<B: BufMut> Serializer for &'_ mut MinecraftSerializer<B> {
         Ok(())
     }
 
-    fn serialize_bytes(self, v: &[u8]) -> Result<Self::Ok, Self::Error> {
+    fn serialize_bytes(self, _v: &[u8]) -> Result<Self::Ok, Self::Error> {
         Err(Error::Unimplemented)
     }
 

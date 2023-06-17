@@ -1,9 +1,9 @@
-pub mod adapters;
+// pub mod adapters;
 
-use bytes::BufMut;
+use bytes::{Buf, BufMut};
 use thiserror::Error;
 
-use self::adapters::ConsumeByte;
+// use self::adapters::ConsumeByte;
 
 const CONTINUE_BIT: u8 = 0x80;
 
@@ -105,11 +105,14 @@ const SHIFT: usize = 7;
 /// // this one does not
 /// read_varint(&buffer[..]);
 /// ```
-pub fn read_varint<T: ConsumeByte>(mut buffer: T) -> Result<(usize, i32), VarIntError> {
+pub fn read_varint(mut buffer: impl Buf) -> Result<(usize, i32), VarIntError> {
     let mut buf: u32 = 0;
 
     for i in 0..5 {
-        let byte: u8 = buffer.consume_byte()?;
+        let byte = buffer
+            .has_remaining()
+            .then(|| buffer.get_u8())
+            .ok_or(VarIntError::Eof)?;
 
         buf |= (byte.mask_continue() as u32) << (i * SHIFT);
 
@@ -118,9 +121,10 @@ pub fn read_varint<T: ConsumeByte>(mut buffer: T) -> Result<(usize, i32), VarInt
         }
     }
 
-    Err(VarIntError::Big.into())
+    Err(VarIntError::Big)
 }
 
+/// Encodes `val` in varint format into BufMut
 pub fn write_varint(mut writer: impl BufMut, val: i32) -> usize {
     let val = val as u32;
 
