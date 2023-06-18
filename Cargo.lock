@@ -141,18 +141,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mc-protocol"
-version = "0.1.0"
-dependencies = [
- "bytes",
- "futures",
- "serde",
- "thiserror",
- "tokio",
- "tokio-util",
-]
-
-[[package]]
 name = "memchr"
 version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -167,6 +155,27 @@ dependencies = [
  "libc",
  "wasi",
  "windows-sys",
+]
+
+[[package]]
+name = "netherite"
+version = "0.1.0"
+dependencies = [
+ "bytes",
+ "futures",
+ "netherite-derive",
+ "serde",
+ "thiserror",
+ "tokio",
+ "tokio-util",
+]
+
+[[package]]
+name = "netherite-derive"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn",
 ]
 
 [[package]]

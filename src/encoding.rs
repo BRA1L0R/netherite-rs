@@ -6,11 +6,13 @@ use self::{
 };
 
 pub mod de;
+pub mod packetid;
+pub mod ser;
 pub mod varint;
 
-pub mod ser;
+mod macros;
 #[cfg(test)]
-mod test;
+pub mod test;
 
 pub struct BorrowedBuffer<'de> {
     // pointer that gets advanced like a cursor

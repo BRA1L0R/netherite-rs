@@ -1,0 +1,12 @@
+/home/pietro/rust/mc-protocol/netherite-derive/target/debug/deps/proc_macro2-ae63700bb25048df.rmeta: /home/pietro/.cargo/registry/src/github.com-1ecc6299db9ec823/proc-macro2-1.0.60/src/lib.rs /home/pietro/.cargo/registry/src/github.com-1ecc6299db9ec823/proc-macro2-1.0.60/src/marker.rs /home/pietro/.cargo/registry/src/github.com-1ecc6299db9ec823/proc-macro2-1.0.60/src/parse.rs /home/pietro/.cargo/registry/src/github.com-1ecc6299db9ec823/proc-macro2-1.0.60/src/rcvec.rs /home/pietro/.cargo/registry/src/github.com-1ecc6299db9ec823/proc-macro2-1.0.60/src/detection.rs /home/pietro/.cargo/registry/src/github.com-1ecc6299db9ec823/proc-macro2-1.0.60/src/fallback.rs /home/pietro/.cargo/registry/src/github.com-1ecc6299db9ec823/proc-macro2-1.0.60/src/extra.rs /home/pietro/.cargo/registry/src/github.com-1ecc6299db9ec823/proc-macro2-1.0.60/src/wrapper.rs
+
+/home/pietro/rust/mc-protocol/netherite-derive/target/debug/deps/proc_macro2-ae63700bb25048df.d: /home/pietro/.cargo/registry/src/github.com-1ecc6299db9ec823/proc-macro2-1.0.60/src/lib.rs /home/pietro/.cargo/registry/src/github.com-1ecc6299db9ec823/proc-macro2-1.0.60/src/marker.rs /home/pietro/.cargo/registry/src/github.com-1ecc6299db9ec823/proc-macro2-1.0.60/src/parse.rs /home/pietro/.cargo/registry/src/github.com-1ecc6299db9ec823/proc-macro2-1.0.60/src/rcvec.rs /home/pietro/.cargo/registry/src/github.com-1ecc6299db9ec823/proc-macro2-1.0.60/src/detection.rs /home/pietro/.cargo/registry/src/github.com-1ecc6299db9ec823/proc-macro2-1.0.60/src/fallback.rs /home/pietro/.cargo/registry/src/github.com-1ecc6299db9ec823/proc-macro2-1.0.60/src/extra.rs /home/pietro/.cargo/registry/src/github.com-1ecc6299db9ec823/proc-macro2-1.0.60/src/wrapper.rs
+
+/home/pietro/.cargo/registry/src/github.com-1ecc6299db9ec823/proc-macro2-1.0.60/src/lib.rs:
+/home/pietro/.cargo/registry/src/github.com-1ecc6299db9ec823/proc-macro2-1.0.60/src/marker.rs:
+/home/pietro/.cargo/registry/src/github.com-1ecc6299db9ec823/proc-macro2-1.0.60/src/parse.rs:
+/home/pietro/.cargo/registry/src/github.com-1ecc6299db9ec823/proc-macro2-1.0.60/src/rcvec.rs:
+/home/pietro/.cargo/registry/src/github.com-1ecc6299db9ec823/proc-macro2-1.0.60/src/detection.rs:
+/home/pietro/.cargo/registry/src/github.com-1ecc6299db9ec823/proc-macro2-1.0.60/src/fallback.rs:
+/home/pietro/.cargo/registry/src/github.com-1ecc6299db9ec823/proc-macro2-1.0.60/src/extra.rs:
+/home/pietro/.cargo/registry/src/github.com-1ecc6299db9ec823/proc-macro2-1.0.60/src/wrapper.rs:

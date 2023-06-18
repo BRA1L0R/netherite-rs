@@ -1,5 +1,5 @@
 [package]
-name = "mc-protocol"
+name = "netherite"
 version = "0.1.0"
 edition = "2021"
 
@@ -12,3 +12,4 @@ serde = { version = "1.0.164", features = ["derive"] }
 thiserror = "1.0.40"
 tokio = { version = "1.28.2", features = ["full"] }
 tokio-util = { version = "0.7.8", features = ["codec"] }
+netherite-derive = { path = "./netherite-derive" }

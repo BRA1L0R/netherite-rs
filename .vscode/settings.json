@@ -1,0 +1,6 @@
+{
+    "rust-analyzer.linkedProjects": [
+        "./Cargo.toml",
+        "./netherite-derive/Cargo.toml",
+    ]
+}

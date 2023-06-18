@@ -94,7 +94,7 @@ const SHIFT: usize = 7;
 /// immutable reference to the buffer
 ///
 /// ```no_run
-/// # use mc_protocol::varint::read_varint;
+/// # use netherite::varint::read_varint;
 ///
 /// let original = &[0x10];
 /// let buffer = &original[..];
