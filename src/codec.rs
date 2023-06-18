@@ -2,6 +2,9 @@ use bytes::{Buf, BufMut, Bytes, BytesMut};
 use thiserror::Error;
 use tokio_util::codec::{Decoder, Encoder};
 
+#[cfg(test)]
+mod test;
+
 use crate::{
     peek::PeekBuffer,
     varint::{self, write_varint, VarIntError},

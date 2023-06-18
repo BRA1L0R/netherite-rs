@@ -2,7 +2,7 @@ mod ser {
     use crate::{assert_serialization, encoding::varint::VarInt};
 
     #[test]
-    fn serialize_string() {
+    fn serialize_str() {
         assert_serialization!("ciao" => b"\x04ciao");
     }
 
