@@ -4,7 +4,7 @@ use super::{de::Deserialize, ser::Serialize};
 
 /// newtype wrapper that defines
 /// a varint-encoded i32
-#[derive(PartialEq, Eq, PartialOrd, Ord)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct VarInt(pub i32);
 
 impl<'de> Deserialize<'de> for VarInt {
@@ -16,9 +16,8 @@ impl<'de> Deserialize<'de> for VarInt {
 }
 
 impl Serialize for VarInt {
-    fn serialize(&self, buf: impl bytes::BufMut) -> Result<(), super::ser::SerError> {
+    fn serialize(&self, buf: impl bytes::BufMut) {
         write_varint(buf, self.0);
-        Ok(())
     }
 
     fn size(&self) -> usize {

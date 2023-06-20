@@ -1,25 +1,23 @@
 use bytes::BufMut;
-use thiserror::Error;
 
 use crate::varint;
 
-#[derive(Debug, Error)]
-pub enum SerError {
-    #[error("tried encoding a value bigger than its encoded limit")]
-    Size,
-}
-
+/// Defines a packet that can serialize into
+/// a binary buffer without error
 pub trait Serialize {
     /// serializes &self into an impl BufMut
-    fn serialize(&self, buf: impl BufMut) -> Result<(), SerError>;
+    fn serialize(&self, buf: impl BufMut);
 
-    /// size in bytes, allows for preallocation
+    /// **EXACT** size in bytes, allows for preallocation
     /// of serialization buffer
+    ///
+    /// This should not be used as a size hint.
+    /// All netherite types implement this as an exact size
     fn size(&self) -> usize;
 }
 
 impl<T: Serialize> Serialize for &T {
-    fn serialize(&self, buf: impl BufMut) -> Result<(), SerError> {
+    fn serialize(&self, buf: impl BufMut) {
         (*self).serialize(buf)
     }
 
@@ -29,12 +27,11 @@ impl<T: Serialize> Serialize for &T {
 }
 
 impl Serialize for &str {
-    fn serialize(&self, mut buf: impl BufMut) -> Result<(), SerError> {
-        let size = self.len().try_into().map_err(|_| SerError::Size)?;
+    fn serialize(&self, mut buf: impl BufMut) {
+        let size = self.len().try_into().unwrap_or(i32::MAX);
         varint::write_varint(&mut buf, size);
 
         buf.put_slice(self.as_bytes());
-        Ok(())
     }
 
     fn size(&self) -> usize {
@@ -44,7 +41,7 @@ impl Serialize for &str {
 }
 
 impl Serialize for String {
-    fn serialize(&self, buf: impl BufMut) -> Result<(), SerError> {
+    fn serialize(&self, buf: impl BufMut) {
         self.as_str().serialize(buf)
     }
 
@@ -54,13 +51,11 @@ impl Serialize for String {
 }
 
 impl<T: Serialize> Serialize for Option<T> {
-    fn serialize(&self, mut buf: impl BufMut) -> Result<(), SerError> {
-        self.is_some().serialize(&mut buf)?;
+    fn serialize(&self, mut buf: impl BufMut) {
+        self.is_some().serialize(&mut buf);
         if let Some(val) = self {
-            val.serialize(buf)?;
+            val.serialize(buf);
         }
-
-        Ok(())
     }
 
     fn size(&self) -> usize {
@@ -69,9 +64,7 @@ impl<T: Serialize> Serialize for Option<T> {
 }
 
 impl Serialize for () {
-    fn serialize(&self, _: impl BufMut) -> Result<(), SerError> {
-        Ok(())
-    }
+    fn serialize(&self, _: impl BufMut) {}
 
     fn size(&self) -> usize {
         0
@@ -81,9 +74,8 @@ impl Serialize for () {
 macro_rules! impl_int {
     ($type:ty, $method:tt) => {
         impl Serialize for $type {
-            fn serialize(&self, mut buf: impl BufMut) -> Result<(), SerError> {
+            fn serialize(&self, mut buf: impl BufMut) {
                 buf.$method(*self as _);
-                Ok(())
             }
 
             fn size(&self) -> usize {

@@ -3,10 +3,8 @@ use std::io::Cursor;
 use futures::{Stream, StreamExt};
 use tokio_util::codec::FramedRead;
 
-use crate::{
-    codec::{CodecError, MinecraftPacket},
-    MinecraftCodec,
-};
+use super::MinecraftCodec;
+use crate::codec::{CodecError, RawPacket};
 
 macro_rules! block {
     ($expr:expr) => {
@@ -14,12 +12,17 @@ macro_rules! block {
     };
 }
 
-fn setup_reader<T>(bytes: T) -> impl Stream<Item = Result<MinecraftPacket, CodecError>>
+fn setup_reader<T>(bytes: T) -> impl Stream<Item = Result<RawPacket, CodecError>>
 where
     T: AsRef<[u8]> + Unpin,
 {
     FramedRead::new(Cursor::new(bytes), MinecraftCodec::default())
 }
+
+// TODO
+// fn setup_writer<T>(bytes: impl AsyncWrite) -> impl Sink<RawPacket> {
+//     FramedWrite::new(bytes, MinecraftCodec::default())
+// }
 
 #[test]
 fn invalid_size() {

@@ -6,7 +6,7 @@ macro_rules! assert_serialization {
         use $crate::encoding::{ser::Serialize, serialize_bytes};
         assert_eq!($data.size(), $to.len(), "wrong size estimate");
 
-        let res = serialize_bytes($data).unwrap();
+        let res = serialize_bytes($data);
         assert_eq!(res.as_ref(), $to);
     }};
 }

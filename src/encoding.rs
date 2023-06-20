@@ -2,7 +2,7 @@ use bytes::{Bytes, BytesMut};
 
 use self::{
     de::{DeError, Deserialize},
-    ser::{SerError, Serialize},
+    ser::Serialize,
 };
 
 pub mod de;
@@ -31,14 +31,16 @@ impl<'de> BorrowedBuffer<'de> {
     }
 }
 
-pub fn serialize_bytes<T: Serialize>(serialize: T) -> Result<Bytes, SerError> {
+pub fn serialize_bytes<T: Serialize>(serialize: T) -> Bytes {
     let prealloc = serialize.size();
     let mut buf = BytesMut::with_capacity(prealloc);
 
-    serialize.serialize(&mut buf)?;
-    Ok(buf.freeze())
+    serialize.serialize(&mut buf);
+
+    buf.freeze()
 }
 
+/// Deserializes `buf` into `T` borrowing the data for `'de`
 pub fn deserialize_bytes<'de, T: Deserialize<'de>>(buf: &'de [u8]) -> Result<T, DeError> {
     T::deserialize(&mut BorrowedBuffer::new(buf))
 }

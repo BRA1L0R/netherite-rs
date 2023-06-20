@@ -19,9 +19,8 @@ pub fn serialize(tree: TokenStream) -> TokenStream {
 
     quote!(
         impl #impl_generics netherite::Serialize for #ident #ty_generics #where_generics {
-            fn serialize(&self, mut buf: impl bytes::BufMut) -> std::result::Result<(), netherite::SerError> {
-                #(self.#serialize.serialize(&mut buf)?;)*
-                Ok(())
+            fn serialize(&self, mut buf: impl bytes::BufMut) {
+                #(self.#serialize.serialize(&mut buf);)*
             }
 
             fn size(&self) -> usize {

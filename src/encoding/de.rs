@@ -71,6 +71,12 @@ impl<'a, 'de: 'a> Deserialize<'de> for &'de str {
     }
 }
 
+impl<'de> Deserialize<'de> for String {
+    fn deserialize(buffer: &mut BorrowedBuffer<'de>) -> Result<Self, DeError> {
+        <&str>::deserialize(buffer).map(ToOwned::to_owned)
+    }
+}
+
 impl<'de> Deserialize<'de> for Vec<u8> {
     fn deserialize(buffer: &mut BorrowedBuffer<'de>) -> Result<Self, DeError> {
         <&[u8]>::deserialize(buffer).map(ToOwned::to_owned)
