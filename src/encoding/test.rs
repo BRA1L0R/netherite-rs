@@ -19,7 +19,12 @@ mod ser {
 }
 
 mod de {
-    use crate::{assert_deserialization, encoding::varint::VarInt};
+    use bytes::Bytes;
+
+    use crate::{
+        assert_deserialization,
+        encoding::{str::Str, varint::VarInt},
+    };
 
     #[test]
     fn deserialize() {
@@ -28,17 +33,12 @@ mod de {
 
     #[test]
     fn deserialize_str() {
-        assert_deserialization!(b"\x04ciao_extradata" => "ciao");
+        assert_deserialization!(b"\x04ciao_extradata" => "ciao", Str);
     }
 
     #[test]
     fn deserialize_borrowed_bytes() {
-        assert_deserialization!(b"\x04aaaa" => &b"aaaa"[..]);
-    }
-
-    #[test]
-    fn deserialize_owned_bytes() {
-        assert_deserialization!(b"\x04aaaa" => Vec::from("aaaa"));
+        assert_deserialization!(b"\x04aaaa" => b"aaaa", Bytes);
     }
 
     #[test]

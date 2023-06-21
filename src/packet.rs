@@ -21,17 +21,28 @@ impl RawPacket {
 
     /// Warning: you should check with [`Self::is`] the packet_id
     /// of the data you're deserializing is the same as [`self.packet_id`]
-    pub fn deserialize_owned<T>(&self) -> Result<OwnedPacket<T>, DeError>
+    pub fn deserialize_unchecked<T>(&self) -> Result<Packet<T>, DeError>
     where
-        for<'de> T: Deserialize<'de> + PacketId,
+        T: Deserialize + PacketId,
     {
-        deserialize_bytes(&self.data).map(OwnedPacket)
+        let buffer = self.data.clone(); // cheap to clone (zero-copy)
+        deserialize_bytes(buffer).map(Packet)
+    }
+
+    /// If packet_id is the same as T calls [`Self::deserialize_unchecked`]
+    pub fn deserialize<T>(&self) -> Option<Result<Packet<T>, DeError>>
+    where
+        T: Deserialize + PacketId,
+    {
+        self.is::<T>().then(|| self.deserialize_unchecked())
     }
 }
 
-pub struct OwnedPacket<T: PacketId>(pub T);
+/// Utility wrapper for sending unserialized packets
+/// over a Codec, or pre-serialization through [`Self::pack`]
+pub struct Packet<T: PacketId>(pub T);
 
-impl<T: PacketId> OwnedPacket<T> {
+impl<T: PacketId> Packet<T> {
     pub fn new(packet: T) -> Self {
         Self(packet)
     }
@@ -45,7 +56,7 @@ impl<T: PacketId> OwnedPacket<T> {
     }
 }
 
-impl<T: PacketId + Serialize> OwnedPacket<T> {
+impl<T: PacketId + Serialize> Packet<T> {
     /// Packs a Packet into a RawPacket
     ///
     /// Note: codec support efficient serialization of [`Packet`]
@@ -58,9 +69,9 @@ impl<T: PacketId + Serialize> OwnedPacket<T> {
     }
 }
 
-impl<T: PacketId> From<T> for OwnedPacket<T> {
+impl<T: PacketId> From<T> for Packet<T> {
     fn from(value: T) -> Self {
-        OwnedPacket(value)
+        Packet(value)
     }
 }
 

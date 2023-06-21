@@ -1,10 +1,8 @@
-use bytes::Buf;
+use bytes::{Buf, Bytes};
 use std::{num::TryFromIntError, str::Utf8Error};
 use thiserror::Error;
 
 use crate::varint::{read_varint, VarIntError};
-
-use super::BorrowedBuffer;
 
 #[derive(Debug, Error)]
 pub enum DeError {
@@ -35,12 +33,12 @@ impl From<TryFromIntError> for DeError {
 
 /// Defines a piece of information that can be
 /// deserialized from a serialized Minecraft packet
-pub trait Deserialize<'de>: Sized {
-    fn deserialize(buffer: &mut BorrowedBuffer<'de>) -> Result<Self, DeError>;
+pub trait Deserialize: Sized {
+    fn deserialize(buffer: impl Buf) -> Result<Self, DeError>;
 }
 
-impl<'de> Deserialize<'de> for bool {
-    fn deserialize(buffer: &mut BorrowedBuffer<'de>) -> Result<Self, DeError> {
+impl Deserialize for bool {
+    fn deserialize(buffer: impl Buf) -> Result<Self, DeError> {
         let a = u8::deserialize(buffer)?;
         match a {
             1 => Ok(true),
@@ -50,42 +48,20 @@ impl<'de> Deserialize<'de> for bool {
     }
 }
 
-impl<'a, 'de: 'a> Deserialize<'de> for &'a [u8] {
-    fn deserialize(buffer: &mut BorrowedBuffer<'de>) -> Result<Self, DeError> {
-        let (_, size) = read_varint(&mut buffer.buf)?;
-        let size: usize = size.try_into()?;
+impl Deserialize for Bytes {
+    fn deserialize(mut buffer: impl Buf) -> Result<Self, DeError> {
+        let (_, length) = read_varint(&mut buffer)?;
+        let length = length.try_into().map_err(|_| DeError::InvalidData)?;
 
-        let slice = buffer.buf.get(..size).ok_or(DeError::Eof)?;
-        // let str = std::str::from_utf8(str)?;
-
-        buffer.buf.advance(size);
-
-        Ok(slice)
+        (length <= buffer.remaining())
+            .then(|| buffer.copy_to_bytes(length))
+            .ok_or(DeError::Eof)
     }
 }
 
-impl<'a, 'de: 'a> Deserialize<'de> for &'de str {
-    fn deserialize(buffer: &mut BorrowedBuffer<'de>) -> Result<Self, DeError> {
-        let slice = <&[u8]>::deserialize(buffer)?;
-        std::str::from_utf8(slice).map_err(Into::into)
-    }
-}
-
-impl<'de> Deserialize<'de> for String {
-    fn deserialize(buffer: &mut BorrowedBuffer<'de>) -> Result<Self, DeError> {
-        <&str>::deserialize(buffer).map(ToOwned::to_owned)
-    }
-}
-
-impl<'de> Deserialize<'de> for Vec<u8> {
-    fn deserialize(buffer: &mut BorrowedBuffer<'de>) -> Result<Self, DeError> {
-        <&[u8]>::deserialize(buffer).map(ToOwned::to_owned)
-    }
-}
-
-impl<'de, T: Deserialize<'de>> Deserialize<'de> for Option<T> {
-    fn deserialize(buffer: &mut BorrowedBuffer<'de>) -> Result<Self, DeError> {
-        let present = bool::deserialize(buffer)?;
+impl<T: Deserialize> Deserialize for Option<T> {
+    fn deserialize(mut buffer: impl Buf) -> Result<Self, DeError> {
+        let present = bool::deserialize(&mut buffer)?;
 
         let res = match present {
             true => Some(T::deserialize(buffer)?),
@@ -96,18 +72,18 @@ impl<'de, T: Deserialize<'de>> Deserialize<'de> for Option<T> {
     }
 }
 
-impl<'de> Deserialize<'de> for () {
-    fn deserialize(_: &mut BorrowedBuffer<'de>) -> Result<Self, DeError> {
+impl Deserialize for () {
+    fn deserialize(_: impl Buf) -> Result<Self, DeError> {
         Ok(())
     }
 }
 
 macro_rules! impl_int {
     ($type:ty, $method:tt) => {
-        impl<'de> Deserialize<'de> for $type {
-            fn deserialize(buffer: &mut BorrowedBuffer<'de>) -> Result<Self, DeError> {
-                (buffer.buf.remaining() >= std::mem::size_of::<$type>())
-                    .then(|| buffer.buf.$method())
+        impl Deserialize for $type {
+            fn deserialize(mut buffer: impl Buf) -> Result<Self, DeError> {
+                (buffer.remaining() >= std::mem::size_of::<$type>())
+                    .then(|| buffer.$method())
                     .ok_or(DeError::Eof)
             }
         }

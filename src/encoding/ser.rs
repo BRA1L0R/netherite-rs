@@ -26,17 +26,29 @@ impl<T: Serialize> Serialize for &T {
     }
 }
 
-impl Serialize for &str {
+impl Serialize for &[u8] {
     fn serialize(&self, mut buf: impl BufMut) {
         let size = self.len().try_into().unwrap_or(i32::MAX);
         varint::write_varint(&mut buf, size);
 
-        buf.put_slice(self.as_bytes());
+        // safe because previously converted
+        // reconverting because catching upper bound
+        buf.put_slice(&self[..size as usize]);
     }
 
     fn size(&self) -> usize {
-        let size = self.len().try_into().unwrap_or(i32::MAX); // will get caught by serialize impl
+        let size = self.len().try_into().unwrap_or(i32::MAX);
         varint::size(size) + self.len()
+    }
+}
+
+impl Serialize for &str {
+    fn serialize(&self, buf: impl BufMut) {
+        self.as_bytes().serialize(buf)
+    }
+
+    fn size(&self) -> usize {
+        self.as_bytes().size()
     }
 }
 

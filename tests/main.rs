@@ -53,6 +53,7 @@ mod serialize {
 mod deserialize {
     use std::mem::size_of;
 
+    use bytes::Bytes;
     use netherite::{assert_deserialization, Deserialize};
 
     #[test]
@@ -88,12 +89,12 @@ mod deserialize {
     #[test]
     fn derive_lifetime() {
         #[derive(Deserialize, Default, PartialEq)]
-        struct MyStruct<'a, T> {
-            field1: &'a [u8],
+        struct MyStruct<T> {
+            field1: Bytes,
             field2: T,
         }
 
-        let instance: MyStruct<'_, &[u8]> = MyStruct::default();
+        let instance: MyStruct<Bytes> = MyStruct::default();
         assert_deserialization!(&[0, 0] => instance);
     }
 }

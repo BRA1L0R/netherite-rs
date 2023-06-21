@@ -15,13 +15,13 @@ pub enum VarIntError {
     Big,
 }
 
-pub trait BitExtension {
+trait BitExtension {
     fn add_continue(self) -> Self;
     fn mask_continue(self) -> Self;
     fn is_continue(&self) -> bool;
 }
 
-pub trait Modify: Sized {
+trait Modify: Sized {
     fn modify(&mut self, op: impl FnOnce(Self) -> Self);
 }
 
@@ -144,6 +144,11 @@ pub fn write_varint(mut writer: impl BufMut, val: i32) -> usize {
     varint_size
 }
 
+/// Cheaply calculates the size of a supposed VarInt
+/// containing this i32.
+///
+/// Runs a logarithm which is optimized to a byte
+/// shift iterated at worst 5 times
 pub fn size(val: i32) -> usize {
     let val = val as u32;
     val.checked_ilog(1 << SHIFT).unwrap_or_default() as usize + 1
