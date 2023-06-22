@@ -4,8 +4,12 @@ use crate::{DeError, Deserialize, Serialize};
 use bytes::Bytes;
 
 #[derive(Debug)]
+/// A Minecraft frame unit composing
+/// of a packet_id and byte data
 pub struct RawPacket {
+    /// PacketID
     pub packet_id: i32,
+    /// Data
     pub data: Bytes,
 }
 

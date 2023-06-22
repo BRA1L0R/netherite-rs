@@ -5,10 +5,16 @@ use self::{
     ser::Serialize,
 };
 
+/// traits and implementations for deserialization
 pub mod de;
+/// defines a trait that binds a packet_id to a deserializable type
 pub mod packetid;
+/// traits and implementations for serialization
 pub mod ser;
+/// cheaply deserializable and clonable string type
 pub mod str;
+/// wrapper type around an [`i32`] for serializing and deserializing
+/// a Varint
 pub mod varint;
 
 mod macros;

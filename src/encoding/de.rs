@@ -5,13 +5,20 @@ use thiserror::Error;
 use crate::varint::{read_varint, VarIntError};
 
 #[derive(Debug, Error)]
+/// Defines an error that could be thrown by
+/// the deserialization process
 pub enum DeError {
     #[error("received data is invalid")]
+    /// Deserialized data is invalid. This could mean
+    /// the data contains an invalid variant.
     InvalidData,
 
+    /// String type received invalid UTF-8 data
     #[error("utf8: {0}")]
     Utf8(#[from] Utf8Error),
 
+    /// Deserialized structure requires more data
+    /// than there's available
     #[error("not enough data to deserialize")]
     Eof,
 }
@@ -34,6 +41,7 @@ impl From<TryFromIntError> for DeError {
 /// Defines a piece of information that can be
 /// deserialized from a serialized Minecraft packet
 pub trait Deserialize: Sized {
+    /// Instantiate a `Self` from a buffer `buffer`
     fn deserialize(buffer: impl Buf) -> Result<Self, DeError>;
 }
 
