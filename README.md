@@ -1,7 +1,6 @@
 # Netherite ![docs.rs](https://img.shields.io/docsrs/netherite)
 
-
-<img src=".github/netherite.webp" align="right" width="100" style="padding: 10px;">
+<img src=".github/netherite.webp" align="right" width="100">
 
 Netherite is a crate implementing the essential building blocks of the Minecraft protocol.
 

@@ -19,7 +19,7 @@ pub fn serialize(tree: TokenStream) -> TokenStream {
 
     quote!(
         impl #impl_generics netherite::Serialize for #ident #ty_generics #where_generics {
-            fn serialize(&self, mut buf: impl bytes::BufMut) {
+            fn serialize(&self, mut buf: impl netherite::_bytes_export::BufMut) {
                 #(self.#serialize.serialize(&mut buf);)*
             }
 
@@ -46,7 +46,7 @@ pub fn deserialize(tree: TokenStream) -> TokenStream {
 
     quote!(
         impl #impl_generics netherite::Deserialize for #ident #struct_generics #where_clause {
-            fn deserialize(mut buffer: impl bytes::Buf)
+            fn deserialize(mut buffer: impl netherite::_bytes_export::Buf)
             -> std::result::Result<Self, netherite::DeError> {
                 Ok(Self {
                     #(#fields: Deserialize::deserialize(&mut buffer)?),*

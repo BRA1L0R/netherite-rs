@@ -5,3 +5,7 @@ pub trait PacketId {
     /// PacketId
     const ID: i32;
 }
+
+impl<T: PacketId> PacketId for &T {
+    const ID: i32 = T::ID;
+}

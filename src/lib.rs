@@ -18,3 +18,5 @@ pub use encoding::{
     ser::Serialize,
 };
 pub use netherite_derive::{Deserialize, Serialize};
+
+pub use bytes as _bytes_export;

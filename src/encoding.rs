@@ -15,11 +15,13 @@ mod macros;
 #[cfg(test)]
 pub mod test;
 
-pub fn serialize_bytes<T: Serialize>(serialize: T) -> Bytes {
-    let prealloc = serialize.size();
+/// Serializes `data` into Bytes, preallocating a buffer
+/// with size `data.size` (for more information read [`Serialize::size`])
+pub fn serialize_bytes<T: Serialize>(data: T) -> Bytes {
+    let prealloc = data.size();
     let mut buf = BytesMut::with_capacity(prealloc);
 
-    serialize.serialize(&mut buf);
+    data.serialize(&mut buf);
 
     buf.freeze()
 }

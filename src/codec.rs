@@ -7,7 +7,7 @@ mod test;
 
 use crate::{
     encoding::packetid::PacketId,
-    packet::{Packet, RawPacket},
+    packet::RawPacket,
     peek::PeekBuffer,
     varint::{self, write_varint, VarIntError},
     Serialize,
@@ -95,14 +95,10 @@ impl Encoder<&RawPacket> for MinecraftCodec {
     }
 }
 
-impl<T: Serialize + PacketId> Encoder<Packet<T>> for MinecraftCodec {
+impl<T: Serialize + PacketId> Encoder<T> for MinecraftCodec {
     type Error = CodecError;
 
-    fn encode(
-        &mut self,
-        Packet(data): Packet<T>,
-        mut dst: &mut BytesMut,
-    ) -> Result<(), Self::Error> {
+    fn encode(&mut self, data: T, mut dst: &mut BytesMut) -> Result<(), Self::Error> {
         let data_size = varint::size(T::ID) + data.size();
         let data_size: i32 = data_size.try_into().map_err(|_| CodecError::Size)?;
 

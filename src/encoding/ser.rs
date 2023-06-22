@@ -9,12 +9,26 @@ pub trait Serialize {
     fn serialize(&self, buf: impl BufMut);
 
     /// **EXACT** size in bytes, allows for preallocation
-    /// of serialization buffer
+    /// of serialization buffer and efficient direct packing
     ///
     /// This should not be used as a size hint.
-    /// All netherite types implement this as an exact size
+    /// All netherite types implement this as an exact size.
+    ///
+    /// It is important to specify the exact size especially
+    /// when using the `T: Serialize + PacketId` implementation
+    /// on the codec as the size is used to avoid a complete
+    /// allocation and buffer copy
+    ///
+    /// ### Tip: unkown size
+    /// If your type doesn't have a known size unless serialized
+    /// (for example: a json `Value`) consider serializing it before-hand
+    /// and passing a &str to [`Serialize`] instead
     fn size(&self) -> usize;
 }
+
+//
+// Impls for common types
+//
 
 impl<T: Serialize> Serialize for &T {
     fn serialize(&self, buf: impl BufMut) {

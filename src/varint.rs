@@ -1,16 +1,14 @@
-// pub mod adapters;
-
 use bytes::{Buf, BufMut};
 use thiserror::Error;
 
-// use self::adapters::ConsumeByte;
-
-const CONTINUE_BIT: u8 = 0x80;
-
 #[derive(Debug, Error)]
+/// Defines an error that could be
+/// returned while deserializing a VarInt
 pub enum VarIntError {
+    /// no more bytes could be read from the buffer
     #[error("not enuogh bytes to complete varint")]
     Eof,
+    /// encoded varint is bigger than i32
     #[error("varint length exceeds max")]
     Big,
 }
@@ -31,6 +29,9 @@ impl<T: Copy> Modify for T {
         *self = op(*self);
     }
 }
+
+const CONTINUE_BIT: u8 = 0x80;
+const SHIFT: usize = 7;
 
 impl BitExtension for u8 {
     fn add_continue(self) -> Self {
@@ -84,8 +85,6 @@ impl<B: BufMut> CounterExt for B {
         }
     }
 }
-
-const SHIFT: usize = 7;
 
 /// Reads a varint from `buffer`, advancing the internal cursor
 ///
