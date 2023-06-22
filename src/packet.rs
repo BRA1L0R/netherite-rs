@@ -14,8 +14,8 @@ pub struct RawPacket {
 }
 
 impl RawPacket {
-    /// ```no_run
-    /// self.packet_id == T::ID
+    /// ```ignore
+    /// packet.packet_id == T::ID
     /// ```
     pub fn is<T: PacketId>(&self) -> bool {
         self.packet_id == T::ID

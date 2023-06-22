@@ -16,8 +16,7 @@ jobs:
       - name: Update local toolchain
         run: |
           rustup update
-          rustup component add clippy
-          rustup install nightly                 
+          rustup component add clippy         
 
       - name: Lint
         run: |
