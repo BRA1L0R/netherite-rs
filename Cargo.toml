@@ -2,6 +2,10 @@
 name = "netherite"
 version = "0.1.0"
 edition = "2021"
+description = "A tokio implementation of the Minecraft Protocol with derive macros"
+readme = "./README.md"
+license = "GPLv3"
+authors = ["BRA1L0R"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
