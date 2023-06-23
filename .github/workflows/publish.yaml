@@ -1,0 +1,36 @@
+name: Build and Test
+
+on:
+  push:
+    tags:
+      - "*"
+
+jobs:
+  test:
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true  
+
+      - name: Lint
+        run: |
+          cargo fmt -- --check
+          cargo clippy -- -D warnings          
+
+      - name: Test
+        run: |
+          cargo check
+          cargo test --all          
+
+      - name: Build
+        run: |
+          cargo build --release
+          
+  publish:
+    needs: [test]
+    steps:
+      - uses: katyo/publish-crates@v2
+        with:
+          registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}
