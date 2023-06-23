@@ -1,0 +1,18 @@
+[package]
+name = "netherite"
+version = "0.1.0"
+edition = "2021"
+description = "A tokio implementation of the Minecraft Protocol with derive macros"
+readme = "../README.md"
+license = "GPLv3"
+authors = ["BRA1L0R"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bytes = "1.4.0"
+futures = "0.3.28"
+thiserror = "1.0.40"
+tokio = { version = "1.28.2", features = ["net", "io-util"] }
+tokio-util = { version = "0.7.8", features = ["codec"] }
+netherite-derive = { version = "0.1.0", path = "../netherite-derive" }

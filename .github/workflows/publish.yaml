@@ -2,8 +2,6 @@ name: Build and Test
 
 on:
   push:
-    tags:
-      - "*"
 
 jobs:
   test:
@@ -28,12 +26,3 @@ jobs:
       - name: Build
         run: |
           cargo build --release
-
-  publish:
-    runs-on: ubuntu-latest
-    needs: [test]
-    steps:
-      - uses: actions/checkout@v2
-      - uses: katyo/publish-crates@v2
-        with:
-          registry-token: ${{ secrets.CARGO_REGISTRY_TOKEN }}

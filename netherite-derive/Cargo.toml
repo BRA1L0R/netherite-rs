@@ -2,6 +2,10 @@
 name = "netherite-derive"
 version = "0.1.0"
 edition = "2021"
+description = "Derive macros for the netherite crate"
+readme = "../README.md"
+license = "GPLv3"
+authors = ["BRA1L0R"]
 
 [lib]
 proc-macro = true
