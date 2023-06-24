@@ -63,13 +63,13 @@ impl Deref for Str {
 
 impl Debug for Str {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Debug::fmt(&self, f)
+        Debug::fmt(self.deref(), f)
     }
 }
 
 impl Display for Str {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        Display::fmt(&self, f)
+        Display::fmt(self.deref(), f)
     }
 }
 
