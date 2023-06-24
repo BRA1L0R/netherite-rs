@@ -6,7 +6,7 @@ use super::{de::Deserialize, ser::Serialize};
 
 /// newtype wrapper that defines
 /// a varint-encoded i32
-#[derive(PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Copy)]
 pub struct VarInt(pub i32);
 
 impl Deserialize for VarInt {
