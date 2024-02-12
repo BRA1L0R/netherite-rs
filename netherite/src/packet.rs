@@ -3,7 +3,7 @@ use crate::encoding::{deserialize_bytes, packetid::PacketId};
 use crate::{DeError, Deserialize, Serialize};
 use bytes::Bytes;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// A Minecraft frame unit composing
 /// of a packet_id and byte data
 pub struct RawPacket {
