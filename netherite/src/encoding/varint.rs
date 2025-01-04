@@ -1,6 +1,6 @@
 use bytes::Buf;
 
-use crate::varint::{self, read_varint, write_varint};
+use crate::varint::{self, read_varint, write};
 
 use super::{de::Deserialize, ser::Serialize};
 
@@ -19,7 +19,7 @@ impl Deserialize for VarInt {
 
 impl Serialize for VarInt {
     fn serialize(&self, buf: impl bytes::BufMut) {
-        write_varint(buf, self.0);
+        write(buf, self.0);
     }
 
     fn size(&self) -> usize {

@@ -12,7 +12,7 @@ pub mod varint;
 
 pub(crate) mod peek;
 
-pub use codec::MinecraftCodec;
+pub use codec::UncompressedCodec;
 pub use encoding::{
     de::{DeError, Deserialize},
     ser::Serialize,

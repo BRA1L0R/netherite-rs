@@ -3,7 +3,7 @@ use std::io::Cursor;
 use futures::{Stream, StreamExt};
 use tokio_util::codec::FramedRead;
 
-use super::MinecraftCodec;
+use super::UncompressedCodec;
 use crate::codec::{CodecError, RawPacket};
 
 macro_rules! block {
@@ -16,7 +16,7 @@ fn setup_reader<T>(bytes: T) -> impl Stream<Item = Result<RawPacket, CodecError>
 where
     T: AsRef<[u8]> + Unpin,
 {
-    FramedRead::new(Cursor::new(bytes), MinecraftCodec::default())
+    FramedRead::new(Cursor::new(bytes), UncompressedCodec::default())
 }
 
 // TODO
@@ -64,4 +64,9 @@ fn zero_data() {
     let packet = res.unwrap();
 
     assert_eq!(packet.data.len(), 0);
+}
+
+// Get derive macros to work within crate
+mod netherite {
+    pub use crate::*;
 }

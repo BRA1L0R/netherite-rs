@@ -43,7 +43,7 @@ impl<T: Serialize> Serialize for &T {
 impl Serialize for &[u8] {
     fn serialize(&self, mut buf: impl BufMut) {
         let size = self.len().try_into().unwrap_or(i32::MAX);
-        varint::write_varint(&mut buf, size);
+        varint::write(&mut buf, size);
 
         // safe because previously converted
         // reconverting because catching upper bound

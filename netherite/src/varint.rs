@@ -124,7 +124,7 @@ pub fn read_varint(mut buffer: impl Buf) -> Result<(usize, i32), VarIntError> {
 }
 
 /// Encodes `val` in varint format into BufMut
-pub fn write_varint(mut writer: impl BufMut, val: i32) -> usize {
+pub fn write(mut writer: impl BufMut, val: i32) -> usize {
     let val = val as u32;
 
     let mut buf = [0u8; 5];
@@ -148,16 +148,20 @@ pub fn write_varint(mut writer: impl BufMut, val: i32) -> usize {
 ///
 /// Runs a logarithm which is optimized to a byte
 /// shift iterated at worst 5 times
-pub fn size(val: i32) -> usize {
+pub const fn size(val: i32) -> usize {
     let val = val as u32;
-    val.checked_ilog(1 << SHIFT).unwrap_or_default() as usize + 1
+
+    match val.checked_ilog(1 << SHIFT) {
+        Some(t) => t as usize + 1,
+        None => 1,
+    }
 }
 
 #[cfg(test)]
 mod test {
     use crate::varint::read_varint;
 
-    use super::{size, write_varint};
+    use super::{size, write};
 
     const TEST: &[(i32, &[u8])] = &[
         (0, &[0x00]),
@@ -184,7 +188,7 @@ mod test {
     fn varint_write() {
         let mut buf = [0; 5];
         for (input, expected) in TEST.iter().copied() {
-            let written = write_varint(&mut buf[..], input);
+            let written = write(&mut buf[..], input);
 
             assert_eq!(written, expected.len());
             assert_eq!(&buf[..written], expected);
