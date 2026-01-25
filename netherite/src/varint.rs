@@ -1,4 +1,7 @@
-use bytes::{Buf, BufMut};
+use std::io::Write;
+
+use bytes::{Buf, BufMut, BytesMut};
+use flate2::write::ZlibEncoder;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -65,7 +68,7 @@ unsafe impl<B: BufMut> BufMut for Counter<B> {
 
     unsafe fn advance_mut(&mut self, cnt: usize) {
         self.count += cnt;
-        self.buffer.advance_mut(cnt)
+        unsafe { self.buffer.advance_mut(cnt) }
     }
 
     fn chunk_mut(&mut self) -> &mut bytes::buf::UninitSlice {
@@ -155,6 +158,7 @@ pub const fn size(val: i32) -> usize {
         Some(t) => t as usize + 1,
         None => 1,
     }
+    // val.checked_ilog(1 << SHIFT).unwrap_or_default() as usize + 1
 }
 
 #[cfg(test)]
