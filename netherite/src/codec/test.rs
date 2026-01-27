@@ -3,8 +3,10 @@ use std::io::Cursor;
 use futures::{Stream, StreamExt};
 use tokio_util::codec::FramedRead;
 
-use super::UncompressedCodec;
-use crate::codec::{CodecError, RawPacket};
+use crate::{
+    codec::{error::CodecError, uncompressed::UncompressedCodec},
+    packet::RawPacket,
+};
 
 macro_rules! block {
     ($expr:expr) => {
@@ -68,5 +70,5 @@ fn zero_data() {
 
 // Get derive macros to work within crate
 mod netherite {
-    pub use crate::*;
+    // pub use crate::*;
 }

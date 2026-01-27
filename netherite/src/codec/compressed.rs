@@ -1,120 +1,19 @@
-use std::{cmp::Ordering, io::Write, ops::Deref, usize};
-
 use bytes::{Buf, BufMut, BytesMut};
-use flate2::{Compression, write::ZlibEncoder};
-use thiserror::Error;
+use flate2::{
+    Compression,
+    write::{ZlibDecoder, ZlibEncoder},
+};
+use std::io::Write;
 use tokio_util::codec::{Decoder, Encoder};
-
-#[cfg(test)]
-mod test;
-
-// pub mod dual;
 
 use crate::{
     Serialize,
+    codec::error::CodecError,
     encoding::packetid::PacketId,
     packet::RawPacket,
     peek::PeekBuffer,
     varint::{self, VarIntError},
 };
-
-/// kept for backwards compatibility with old naming
-pub type MinecraftCodec = UncompressedCodec;
-
-/// Codec for uncompressed and unencrypted
-/// Minecraft packets
-pub struct UncompressedCodec {
-    max_size: usize,
-}
-
-impl UncompressedCodec {
-    /// sets the maximum size of the packet the decoder is willing
-    /// to read from the stream
-    pub fn max_size(self, max_size: usize) -> Self {
-        Self { max_size }
-    }
-}
-
-impl Default for UncompressedCodec {
-    fn default() -> Self {
-        // will get limited by max varint size
-        Self {
-            max_size: usize::MAX,
-        }
-    }
-}
-
-impl Decoder for UncompressedCodec {
-    type Item = RawPacket;
-    type Error = CodecError;
-
-    fn decode(&mut self, mut src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
-        let (packet_len_size, packet_len) = match varint::read_varint(src.peek()) {
-            Err(VarIntError::Eof) => return Ok(None),
-            r => r?,
-        };
-
-        let packet_len = packet_len.try_into().map_err(|_| CodecError::Size)?;
-        if !(1..self.max_size).contains(&packet_len) {
-            return Err(CodecError::Size);
-        }
-
-        let remaining = src
-            .remaining()
-            .checked_sub(packet_len_size)
-            .expect("buffer should still have varint bytes");
-
-        // if there are missing bytes, preemptively reserve
-        // space in the buffer to accomodate them
-        if let Some(missing @ 1..) = packet_len.checked_sub(remaining) {
-            src.reserve(missing);
-            return Ok(None);
-        }
-
-        src.advance(packet_len_size);
-
-        let (id_len, packet_id) = varint::read_varint(&mut src)?;
-
-        let data_size = packet_len.checked_sub(id_len).ok_or(CodecError::Size)?;
-        let data = src.copy_to_bytes(data_size);
-
-        Ok(Some(RawPacket { packet_id, data }))
-    }
-}
-
-impl Encoder<&RawPacket> for UncompressedCodec {
-    type Error = CodecError;
-
-    fn encode(&mut self, item: &RawPacket, mut dst: &mut BytesMut) -> Result<(), Self::Error> {
-        let packet_size = varint::size(item.packet_id) + item.data.len();
-        if packet_size > self.max_size {
-            return Err(CodecError::Size);
-        }
-
-        let packet_size = packet_size.try_into().map_err(|_| CodecError::Size)?;
-
-        varint::write(&mut dst, packet_size);
-        varint::write(&mut dst, item.packet_id);
-        dst.put_slice(&item.data);
-
-        Ok(())
-    }
-}
-
-impl<T: Serialize + PacketId> Encoder<T> for UncompressedCodec {
-    type Error = CodecError;
-
-    fn encode(&mut self, data: T, mut dst: &mut BytesMut) -> Result<(), Self::Error> {
-        let data_size = varint::size(T::ID) + data.size();
-        let data_size: i32 = data_size.try_into().map_err(|_| CodecError::Size)?;
-
-        varint::write(&mut dst, data_size);
-        varint::write(&mut dst, T::ID);
-        data.serialize(dst);
-
-        Ok(())
-    }
-}
 
 pub struct CompressedCodec {
     /// the treshold at which the codec will start zlib compressing the packet data
@@ -172,7 +71,7 @@ impl Decoder for CompressedCodec {
     type Item = RawPacket;
     type Error = CodecError;
 
-    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
+    fn decode(&mut self, mut src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         let (packet_len_size, packet_len) = match varint::read_varint(src.peek()) {
             Err(VarIntError::Eof) => return Ok(None),
             r => r?,
@@ -197,9 +96,34 @@ impl Decoder for CompressedCodec {
 
         src.advance(packet_len_size);
 
-        let data_length = varint::read_varint(src)?;
+        let (data_len_size, data_len) = varint::read_varint(&mut src)?;
+        let data_len = data_len.try_into().map_err(|_| CodecError::Size)?;
+        if !(1..self.max_size).contains(&data_len) {
+            return Err(CodecError::Size);
+        }
 
-        todo!()
+        // subtract data_len to get the length of the rest of the packet
+        let payload_length = packet_len
+            .checked_sub(data_len_size)
+            .ok_or(CodecError::Size)?;
+
+        // data_len = 0 => uncompressed
+        // data_len > 0 => compressed, needs zlib decompression
+        let packet = match data_len {
+            0 => super::decode_raw_packet(src, payload_length)?,
+            _ => {
+                let mut data = BytesMut::with_capacity(data_len);
+                let mut decoder = ZlibDecoder::new((&mut data).writer());
+
+                decoder.write_all(&src[..payload_length])?;
+                src.advance(payload_length);
+                decoder.finish()?;
+
+                super::decode_raw_packet(&mut data, data_len)?
+            }
+        };
+
+        Ok(Some(packet))
     }
 }
 
@@ -218,7 +142,7 @@ impl Encoder<&RawPacket> for CompressedCodec {
             let mut encoder = ZlibEncoder::new(&mut self.compressed_buffer, Compression::default());
 
             // ce ripassiamo
-            let mut varint = [0; 4];
+            let mut varint = [0; 5];
             let varint_written = varint::write(&mut varint[..], item.packet_id);
             encoder.write_all(&varint[..varint_written])?;
             encoder.write_all(&item.data)?;
@@ -255,8 +179,6 @@ impl<T: Serialize + PacketId> Encoder<T> for CompressedCodec {
     fn encode(&mut self, data: T, mut dst: &mut BytesMut) -> Result<(), Self::Error> {
         let size = varint::size(T::ID) + data.size();
 
-        debug_assert!(i32::try_from(size).is_ok()); // 👍
-
         if size >= self.compression_threshold {
             self.uncompressed_buffer.clear();
             self.compressed_buffer.clear();
@@ -285,9 +207,10 @@ impl<T: Serialize + PacketId> Encoder<T> for CompressedCodec {
             let packet_length = varint::size(data_length) + varint::size(T::ID) + data.size();
             let packet_length = packet_length.try_into().map_err(|_| CodecError::Size)?;
 
+            // final packet assembly
+            //
             varint::write(&mut dst, packet_length);
             varint::write(&mut dst, data_length);
-
             varint::write(&mut dst, T::ID);
             data.serialize(dst);
         }

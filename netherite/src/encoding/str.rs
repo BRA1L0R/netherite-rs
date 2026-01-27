@@ -75,6 +75,6 @@ impl Display for Str {
 
 impl PartialEq<str> for Str {
     fn eq(&self, other: &str) -> bool {
-        self == other
+        self.inner == other
     }
 }

@@ -1,0 +1,201 @@
+#![allow(missing_docs)]
+
+pub mod error;
+
+use std::{io::Write, ops::Deref};
+
+use bytes::{Buf, BufMut, BytesMut};
+use flate2::{
+    Compression,
+    write::{DeflateDecoder, ZlibEncoder},
+};
+use tokio_util::codec::{Decoder, Encoder};
+
+use crate::{
+    Serialize,
+    codec::error::CodecError,
+    encoding::packetid::PacketId,
+    packet::RawPacket,
+    peek::PeekBuffer,
+    varint::{self, VarIntError},
+};
+
+pub struct UncompressedCodec {
+    compression_buffer: Vec<u8>,
+    max_size: usize,
+}
+
+pub struct CompressedCodec {
+    compression_treshold: usize,
+    max_size: usize,
+}
+
+// impl UncompressedCodec {
+//     pub fn uncompressed() -> Self {
+//         UncompressedCodec {
+//             // compression_treshold: None,
+//             compression_buffer: vec![],
+//             max_size: usize::MAX,
+//         }
+//     }
+
+//     pub fn compressed(compression_treshold: usize) -> Self {
+//         UncompressedCodec {
+//             compression_treshold: Some(compression_treshold),
+//             compression_buffer: vec![],
+//             max_size: usize::MAX,
+//         }
+//     }
+// }
+//
+
+impl Decoder for UncompressedCodec {
+    type Item = RawPacket;
+
+    type Error = CodecError;
+
+    fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
+        todo!()
+    }
+}
+
+// impl Decoder for UncompressedCodec {
+//     type Item = RawPacket;
+
+//     type Error = CodecError;
+
+//     fn decode(&mut self, src: &mut bytes::BytesMut) -> Result<Option<Self::Item>, Self::Error> {
+//         let (packet_len_size, packet_len) = match varint::read_varint(src.peek()) {
+//             Err(VarIntError::Eof) => return Ok(None),
+//             r => r?,
+//         };
+
+//         let packet_len = packet_len.try_into().map_err(|_| CodecError::Size)?;
+//         if !(1..self.max_size).contains(&packet_len) {
+//             return Err(CodecError::Size);
+//         }
+
+//         let remaining = src
+//             .remaining()
+//             .checked_sub(packet_len_size)
+//             .expect("buffer should still have varint bytes");
+
+//         // if there are missing bytes, preemptively reserve
+//         // space in the buffer to accomodate them
+//         if let Some(missing @ 1..) = packet_len.checked_sub(remaining) {
+//             src.reserve(missing);
+//             return Ok(None);
+//         }
+
+//         let mut packet_data = src.split_to(packet_len);
+
+//         if self.compression_treshold.is_some() {
+//             let (_, data_len) = varint::read_varint(&mut packet_data)?;
+
+//             let data_len = data_len.try_into().map_err(|_| CodecError::Size)?;
+//             if !(1..self.max_size).contains(&data_len) {
+//                 return Err(CodecError::Size);
+//             }
+
+//             if data_len > 0 {
+//                 let mut uncompressed = BytesMut::with_capacity(data_len);
+
+//                 let mut deflater = DeflateDecoder::new((&mut uncompressed).writer());
+//                 deflater.write_all(&packet_data)?;
+//                 drop(deflater);
+
+//                 packet_data = uncompressed;
+//             }
+//         }
+
+//         let (_, packet_id) = varint::read_varint(&mut packet_data)?;
+
+//         Ok(Some(RawPacket {
+//             packet_id,
+//             data: packet_data.freeze(),
+//         }))
+//     }
+// }
+
+impl UncompressedCodec {
+    fn encode_uncompressed(
+        &mut self,
+        item: RawPacket,
+        mut dst: &mut BytesMut,
+    ) -> Result<(), CodecError> {
+        let RawPacket { packet_id, data } = item;
+
+        let packet_size = data.len() + varint::size(packet_id);
+        let packet_size = packet_size.try_into().map_err(|_| CodecError::Size)?;
+
+        varint::write(&mut dst, packet_size);
+        varint::write(&mut dst, packet_id);
+        dst.extend(data);
+
+        Ok(())
+    }
+
+    pub fn encode_compressed(
+        &mut self,
+        item: RawPacket,
+        mut dst: &mut BytesMut,
+        compression_treshold: usize,
+    ) -> Result<(), CodecError> {
+        let RawPacket { packet_id, data } = item;
+        let uncompressed_size = data.len() + varint::size(packet_id);
+
+        let mut data_len = 0i32;
+        let mut packet_data_size = uncompressed_size;
+        let mut payload = data.deref();
+
+        if uncompressed_size >= compression_treshold {
+            self.compression_buffer.clear();
+
+            let mut encoder = ZlibEncoder::new(&mut self.compression_buffer, Compression::best());
+
+            let mut encoded_id = [0u8; 5];
+            let pid_len = varint::write(&mut encoded_id[..], packet_id);
+
+            encoder.write_all(&encoded_id[..pid_len]).unwrap();
+            encoder.write_all(data.deref()).unwrap();
+            encoder.finish().unwrap();
+
+            data_len = uncompressed_size.try_into().map_err(|_| CodecError::Size)?;
+            packet_data_size = self.compression_buffer.len();
+            payload = self.compression_buffer.as_slice();
+        }
+
+        let packet_size = (packet_data_size + varint::size(data_len))
+            .try_into()
+            .map_err(|_| CodecError::Size)?;
+
+        varint::write(&mut dst, packet_size);
+        varint::write(&mut dst, data_len);
+
+        if data_len == 0 {
+            varint::write(&mut dst, packet_id);
+        }
+
+        dst.put_slice(payload);
+        Ok(())
+    }
+}
+
+impl Encoder<RawPacket> for UncompressedCodec {
+    type Error = CodecError;
+
+    fn encode(&mut self, item: RawPacket, dst: &mut BytesMut) -> Result<(), Self::Error> {
+        match self.compression_treshold {
+            Some(compression_treshold) => self.encode_compressed(item, dst, compression_treshold),
+            None => self.encode_uncompressed(item, dst),
+        }
+    }
+}
+
+impl<T: PacketId + Serialize> Encoder<T> for UncompressedCodec {
+    type Error = CodecError;
+
+    fn encode(&mut self, item: T, dst: &mut BytesMut) -> Result<(), Self::Error> {
+        todo!()
+    }
+}

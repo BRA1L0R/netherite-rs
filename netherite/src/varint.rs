@@ -1,7 +1,4 @@
-use std::io::Write;
-
-use bytes::{Buf, BufMut, BytesMut};
-use flate2::write::ZlibEncoder;
+use bytes::{Buf, BufMut};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
